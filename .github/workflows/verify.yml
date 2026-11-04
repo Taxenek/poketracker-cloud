@@ -1,0 +1,37 @@
+name: Verify Docker Gateway
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t poketracker-gateway .
+
+      - name: Smoke test container & upstream targets
+        run: |
+          docker run -d --name gw -p 8000:8000 -e POKETRACKER_CRON_TOKEN=ci-test-token poketracker-gateway
+          for i in $(seq 1 15); do
+            if curl -fsS http://127.0.0.1:8000/health; then break; fi
+            sleep 1
+          done
+          echo ""
+          BAD_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8000/fetch?url=https%3A%2F%2Fwww.smarty.cz%2Fpokemon-tcg-4c14578")
+          echo "Auth check without token -> HTTP $BAD_CODE"
+          test "$BAD_CODE" = "403"
+
+          SMARTY_CODE=$(curl -s -o /tmp/smarty.html -w "%{http_code}" -H "x-cron-token: ci-test-token" "http://127.0.0.1:8000/fetch?url=https%3A%2F%2Fwww.smarty.cz%2Fpokemon-tcg-4c14578")
+          SMARTY_BYTES=$(wc -c < /tmp/smarty.html)
+          echo "Smarty fetch -> HTTP $SMARTY_CODE ($SMARTY_BYTES bytes)"
+
+          ALZA_CODE=$(curl -s -o /tmp/alza.html -w "%{http_code}" -H "x-cron-token: ci-test-token" "http://127.0.0.1:8000/fetch?url=https%3A%2F%2Fwww.alza.cz%2Fhracky%2Fpokemon-karty%2F18879069.htm")
+          ALZA_BYTES=$(wc -c < /tmp/alza.html)
+          echo "Alza fetch -> HTTP $ALZA_CODE ($ALZA_BYTES bytes)"
+
+          docker logs gw
