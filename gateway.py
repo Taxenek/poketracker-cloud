@@ -198,7 +198,7 @@ def build_app() -> web.Application:
     if not token:
         raise RuntimeError("Chybí proměnná prostředí POKETRACKER_CRON_TOKEN.")
 
-    impersonate = os.environ.get("POKETRACKER_IMPERSONATE", "").strip() or "chrome124"
+    impersonate = os.environ.get("POKETRACKER_IMPERSONATE", "").strip() or "chrome"
     proxy = os.environ.get("POKETRACKER_PROXY", "").strip() or None
     raw_hosts = os.environ.get("POKETRACKER_ALLOWED_HOSTS", "").strip()
     suffixes = (
