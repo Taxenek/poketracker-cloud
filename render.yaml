@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: poketracker-gateway
+    runtime: docker
+    region: frankfurt
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: POKETRACKER_CRON_TOKEN
+        sync: false
